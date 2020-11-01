@@ -7,8 +7,16 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from matplotlib.figure import Figure
 from ui.dialog.add_point_transform import AddPointTransformationDialog
-from cg.transform.point import additive
+from ui.dialog.brightness import BrightnessDialog
+from ui.dialog.multiply_point_transform import MultiplyPointTransformationDialog
+from cg.transform.point import *
+from cg.transform.convolution import Filters as filters
+from cg.transform.convolution import FilterConvolution as fc
+from cg.transform.convolution import MedianFilterConvolution as mfc
+
+
 import sys
+
 
 
 class MainWindow(QMainWindow):
@@ -27,16 +35,28 @@ class MainWindow(QMainWindow):
         self.image_layout.addWidget(self.image_canvas)
 
         self.actionOpen.triggered.connect(self.load_image)
-        # self.actionSave.triggered.connect(self.save_image)
         self.actionExit.triggered.connect(self.close_app)
         self.actionRevert.triggered.connect(self.revert_image)
         self.actionAdditive.triggered.connect(self.additive_point_transformation)
+        self.actionMultiplicative.triggered.connect(self.multiplicative_point_transformation)
+        self.actionLuminosity.triggered.connect(self.luminosity_grayscale)
+        self.actionAverage.triggered.connect(self.average_grayscale)
+        self.actionLightness.triggered.connect(self.lightness_grayscale)
+        self.actionBrightness.triggered.connect(self.change_brightness)
+
+        # Filter
+        self.actionMean.triggered.connect(self.mean_filter)
+        self.actionMedian.triggered.connect(self.median_filter)
+        self.actionHorizontal.triggered.connect(self.horizontal_sobel_filter)
+        self.actionVertical.triggered.connect(self.vertical_sobel_filter)
+        self.actionSharpen.triggered.connect(self.sharpen_filter)
+        self.actionGaussian_Blur.triggered.connect(self.gaussian_blur_filter)
 
     def close_app(self):
         sys.exit(self.exec_())
 
     def revert_image(self):
-        self.image = self.init_img
+        self.image.img = self.init_img
 
     def load_image(self):
         try:
@@ -50,6 +70,7 @@ class MainWindow(QMainWindow):
                 self.image_ax.clear()
                 self.image_ax.imshow(self.image.img)
                 self.image_canvas.draw()
+                self.init_img = self.image.img.copy()
 
         except FileNotFoundError as fnfe:
             msg = QMessageBox()
@@ -69,13 +90,62 @@ class MainWindow(QMainWindow):
     def additive_point_transformation(self):
         dlg = AddPointTransformationDialog()
         if dlg.exec_():
-            result = additive(self.image.img, dlg.get_values())
-            self.image.img = PIL.Image.fromarray(result.astype('uint8'), 'RGB')
+            self.image.img = additive(self.image.img, dlg.get_values())
+
+    def multiplicative_point_transformation(self):
+        dlg = MultiplyPointTransformationDialog()
+        if dlg.exec_():
+            self.image.img = multiplicative(self.image.img, dlg.get_values())
+
+    def luminosity_grayscale(self):
+        self.image.img = luminosity_grayscale(self.image.img)
+
+    def lightness_grayscale(self):
+        self.image.img = lightness_grayscale(self.image.img)
+
+    def average_grayscale(self):
+        self.image.img = average_grayscale(self.image.img)
+
+    def change_brightness(self):
+        dlg = BrightnessDialog()
+        if dlg.exec_():
+            self.image.img = brightness(self.image.img, dlg.get_values())
+
+    def mean_filter(self):
+        mean_f = fc(kernel=filters.box_blur, image=self.image.img)
+        mean_f.apply_filter()
+        self.image.img = mean_f.return_img()
+
+    def median_filter(self):
+        median_f = mfc(kernel=filters.box_blur, image=self.image.img)
+        median_f.apply_filter()
+        self.image.img = median_f.return_img()
+
+    def horizontal_sobel_filter(self):
+        h_sobel_f = fc(kernel=filters.sobel_horizontal, image=self.image.img)
+        h_sobel_f.apply_filter()
+        self.image.img = h_sobel_f.return_img()
+
+    def vertical_sobel_filter(self):
+        v_sobel_f = fc(kernel=filters.sobel_vertical, image=self.image.img)
+        v_sobel_f.apply_filter()
+        self.image.img = v_sobel_f.return_img()
+
+    def sharpen_filter(self):
+        sharpen_f = fc(kernel=filters.sharpen, image=self.image.img)
+        sharpen_f.apply_filter()
+        self.image.img = sharpen_f.return_img()
+
+    def gaussian_blur_filter(self):
+        gaussian_f = fc(kernel=filters.gaussian_blur, image=self.image.img)
+        gaussian_f.apply_filter()
+        self.image.img = gaussian_f.return_img()
 
     def update_image(self):
         self.image_ax.clear()
         self.image_ax.imshow(self.image.img, cmap=self.image.cmap)
         self.image_canvas.draw()
+
 
 class CGImage:
     def __init__(self, window, *args, **kwargs):
@@ -100,3 +170,4 @@ class NavigationToolbar(NavigationToolbar2QT):
     # only display the buttons we need
     toolitems = [t for t in NavigationToolbar2QT.toolitems if
                  t[0] in ('Home', 'Pan', 'Forward', 'Back', 'Zoom')]
+
