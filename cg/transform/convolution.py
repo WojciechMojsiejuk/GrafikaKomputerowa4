@@ -35,6 +35,7 @@ class Convolution:
         self.h_ext, self.w_ext = self.calculate_border_extension()
         self.height, self.width, self.channel = self.img.shape
         self.expand_img_dim()
+        self.result = self.img.copy()
 
     def calculate_border_extension(self) -> (int, int):
         return int((self.kernel.shape[0]-1)/2), int((self.kernel.shape[1]-1)/2)
@@ -55,7 +56,7 @@ class Convolution:
         pass
 
     def return_img(self) -> PIL.Image.Image:
-        image = self.img[self.h_ext:self.height+self.h_ext, self.w_ext:self.width+self.w_ext, :]
+        image = self.result[self.h_ext:self.height+self.h_ext, self.w_ext:self.width+self.w_ext, :]
         return PIL.Image.fromarray(image.astype('uint8'), 'RGB')
 
 
@@ -75,9 +76,9 @@ class FilterConvolution(Convolution):
                 applied_window_2 = window_2 * self.kernel
                 window_value_2 = round(np.sum(applied_window_2) / self.kernel_weight)
 
-                self.img[y, x, 0] = validate(window_value_0)
-                self.img[y, x, 1] = validate(window_value_1)
-                self.img[y, x, 2] = validate(window_value_2)
+                self.result[y, x, 0] = validate(window_value_0)
+                self.result[y, x, 1] = validate(window_value_1)
+                self.result[y, x, 2] = validate(window_value_2)
 
 
 class MedianFilterConvolution(Convolution):
@@ -93,6 +94,6 @@ class MedianFilterConvolution(Convolution):
                 window_2 = self.img[y - self.h_ext:y + self.h_ext+1, x - self.w_ext:x + self.w_ext+1, 2]
                 window_value_2 = validate(int(np.median(window_2)))
 
-                self.img[y, x, 0] = window_value_0
-                self.img[y, x, 1] = window_value_1
-                self.img[y, x, 2] = window_value_2
+                self.result[y, x, 0] = window_value_0
+                self.result[y, x, 1] = window_value_1
+                self.result[y, x, 2] = window_value_2

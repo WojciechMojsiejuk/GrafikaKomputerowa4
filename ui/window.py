@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from ui.dialog.add_point_transform import AddPointTransformationDialog
 from ui.dialog.brightness import BrightnessDialog
 from ui.dialog.multiply_point_transform import MultiplyPointTransformationDialog
+from ui.dialog.custom_filter import CustomFilterDialog
 from cg.transform.point import *
 from cg.transform.convolution import Filters as filters
 from cg.transform.convolution import FilterConvolution as fc
@@ -51,6 +52,7 @@ class MainWindow(QMainWindow):
         self.actionVertical.triggered.connect(self.vertical_sobel_filter)
         self.actionSharpen.triggered.connect(self.sharpen_filter)
         self.actionGaussian_Blur.triggered.connect(self.gaussian_blur_filter)
+        self.actionCustom.triggered.connect(self.custom_filter)
 
     def close_app(self):
         sys.exit(self.exec_())
@@ -140,6 +142,13 @@ class MainWindow(QMainWindow):
         gaussian_f = fc(kernel=filters.gaussian_blur, image=self.image.img)
         gaussian_f.apply_filter()
         self.image.img = gaussian_f.return_img()
+
+    def custom_filter(self):
+        dlg = CustomFilterDialog()
+        if dlg.exec_():
+            custom_f = fc(kernel=dlg.get_values(), image=self.image.img)
+            custom_f.apply_filter()
+            self.image.img = custom_f.return_img()
 
     def update_image(self):
         self.image_ax.clear()
